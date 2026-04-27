@@ -1,0 +1,30 @@
+# EditorConfig — https://editorconfig.org
+# Top-most config in the project.
+root = true
+
+# ---------- Defaults for every file ----------
+[*]
+charset                  = utf-8
+end_of_line              = lf
+indent_style             = space
+indent_size              = 2
+insert_final_newline     = true
+trim_trailing_whitespace = true
+
+# ---------- Python ----------
+[*.py]
+indent_size     = 4
+max_line_length = 100
+
+# ---------- TypeScript / JavaScript / JSON / YAML ----------
+[*.{ts,tsx,js,jsx,json,yml,yaml}]
+indent_size = 2
+
+# ---------- Markdown ----------
+# Trailing spaces in Markdown are meaningful (line breaks), so don't strip them.
+[*.md]
+trim_trailing_whitespace = false
+
+# ---------- Makefiles need real tabs ----------
+[Makefile]
+indent_style = tab
