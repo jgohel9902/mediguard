@@ -45,9 +45,25 @@ This document is written for two audiences: my future self, so I remember why de
 - **`main` as the default branch.** Industry standard since 2020.
 - **OneDrive-backed Desktop for the project root.** Free off-site backup for free.
 
-### What's next (Day 2)
-- Add the remaining foundational documents: `ARCHITECTURE.md`, `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`.
-- Add a `.editorconfig` and `.vscode/extensions.json` so any contributor (including future-me on a fresh machine) gets a consistent editor setup.
-- Begin sketching the high-level architecture diagram for `ARCHITECTURE.md` before writing any backend code — design before code.
-
 ---
+
+
+## Day 2 — 2026-04-27
+
+### What I did
+- Added `.editorconfig` to enforce consistent indentation, line endings, and whitespace across editors and operating systems.
+- Created `.vscode/extensions.json` with the recommended extensions for the project (Python, TypeScript, Tailwind, Docker, GitLens, GitHub Actions, EditorConfig, spell-checker, Markdown tooling, YAML, TOML).
+- Wrote ADR 0001 — Technology Stack Selection — at `docs/decisions/0001-technology-stack-selection.md`. It documents every major stack choice (FastAPI, Next.js, PostgreSQL, Tailwind + shadcn/ui, Render + Vercel) along with the rejected options, the trade-offs accepted, and the triggers that would cause us to revisit the decision.
+- Configured a branch-protection rule on `main` via the GitHub UI: requires a pull request to merge, requires conversation resolution, requires linear history, blocks force pushes, blocks deletions. Status-check enforcement is left for once CI exists.
+
+### What I learned
+- The Michael Nygard ADR format (Status, Context, Decision, Consequences) is short by design but forces structured trade-off thinking. Writing the rejected options down was harder than writing the chosen one — and that's the point.
+- Branch protection has more knobs than I expected. For a solo developer, the right mix is: require PRs, zero required approvals, allow admin bypass, block force pushes, block deletions. Each setting has a real reason.
+- VS Code's `extensions.json` is honored automatically: when anyone opens the project, VS Code prompts to install the recommended extensions. This is how onboarding works on real engineering teams.
+- `editorconfig` is not redundant with `prettier` and `black` — it covers behavior (indentation, line endings, final newline) for *every* file type, not just the ones a formatter handles.
+
+### Decisions made
+- `main` is now protected. Direct pushes are temporarily allowed for foundation docs (admin bypass, no review possible since I'm solo), but feature work starts on branches and merges through PRs.
+- ADRs live under `docs/decisions/` and use the `NNNN-kebab-case-title.md` naming convention. Each one is numbered, dated, and includes a "Revisit triggers" section so future-me knows when to reopen the decision.
+- VS Code is the editor of record for this project (not full Visual Studio); recommended extensions are committed to the repo so any contributor — including future-me on a different machine — gets the same setup.
+
