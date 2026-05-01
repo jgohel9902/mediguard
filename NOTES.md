@@ -67,3 +67,21 @@ This document is written for two audiences: my future self, so I remember why de
 - ADRs live under `docs/decisions/` and use the `NNNN-kebab-case-title.md` naming convention. Each one is numbered, dated, and includes a "Revisit triggers" section so future-me knows when to reopen the decision.
 - VS Code is the editor of record for this project (not full Visual Studio); recommended extensions are committed to the repo so any contributor — including future-me on a different machine — gets the same setup.
 
+## Day 3 — 2026-05-01
+
+### What I did
+- Created the first feature branch (`feat/backend-bootstrap`) and started using the PR-driven workflow on `main`.
+- Set up a Python virtual environment inside `backend/` and verified an isolated Python 3.12.10 + pip toolchain.
+- Wrote `backend/pyproject.toml` with PEP 621 metadata, runtime dependencies (FastAPI, Uvicorn, SQLAlchemy 2, Alembic, Pydantic v2, Pydantic Settings, python-jose, passlib, httpx, structlog, python-dotenv, python-multipart), dev dependencies (pytest, pytest-asyncio, pytest-cov, black, ruff, mypy, type stubs), and tool configurations for black, ruff, mypy, pytest, and coverage.
+- Initialized the `app/` Python package with a single-source-of-truth version string.
+- Wrote `app/main.py` — the FastAPI application instance with a typed, async `/health` endpoint that returns `{"status": "ok", "version": ...}`.
+- Started uvicorn with `--reload`, hit `/health` in a browser, and saw the auto-generated Swagger UI at `/docs` and Redoc UI at `/redoc`.
+- Wrote three focused pytest tests for `/health` covering the status code, the status field, and the version field. All passed on the first run.
+- Opened the first Pull Request, self-reviewed it, squash-merged into `main`, deleted the feature branch both locally and remotely.
+
+### What I learned
+- The right relationship between `pyproject.toml`, the `[build-system]` block, and the `[project]` block. Hatchling is the modern minimal build backend; `[build-system]` tells pip what to use, `[project]` is the PEP 621 metadata, and `[tool.*]` blocks configure individual tools.
+- `pip install -e ".[dev]"` does three things at once: builds the local package via the build backend, installs runtime dependencies, and installs optional dev dependencies. The `-e` makes the install editable so source-code edits don't require reinstalling.
+- FastAPI's `TestClient` (backed by httpx) lets pytest hit endpoints in-process — no real server, no real network, fast and deterministic.
+- A failing import inside a module shows up as `ImportError: cannot import name '...' from '...'` rather than `Attribute "app" not found`. The two error shapes feel similar but tell you very different things — read the actual stack frame to find the failing line.
+- Squash-merging keeps `main` history linear and readable. The PR's individual commits still exist in the PR conversation history, so nothing is lost — but `main` only sees one clean entry per merged
