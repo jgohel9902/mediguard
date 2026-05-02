@@ -91,7 +91,7 @@ A detailed architecture document will live at [docs/architecture/](./docs/archit
 ## Roadmap
 
 - [x] Phase 1 — Foundations: repo scaffold, documentation skeleton, license
-- [ ] Phase 2 — Backend MVP: FastAPI app, database models, JWT authentication
+- [x] Phase 2 — Backend MVP: FastAPI app, database models, JWT authentication
 - [ ] Phase 3 — API integrations: OpenFDA, RxNorm, interaction engine
 - [ ] Phase 4 — Frontend MVP: Next.js shell, design system, authentication flow
 - [ ] Phase 5 — Core features: medication CRUD, interaction checker, alerts
