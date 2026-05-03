@@ -67,7 +67,7 @@ This document is written for two audiences: my future self, so I remember why de
 - ADRs live under `docs/decisions/` and use the `NNNN-kebab-case-title.md` naming convention. Each one is numbered, dated, and includes a "Revisit triggers" section so future-me knows when to reopen the decision.
 - VS Code is the editor of record for this project (not full Visual Studio); recommended extensions are committed to the repo so any contributor — including future-me on a different machine — gets the same setup.
 
-## Day 3 — 2026-05-01
+## Day 3 — 2026-04-28
 
 ### What I did
 - Created the first feature branch (`feat/backend-bootstrap`) and started using the PR-driven workflow on `main`.
@@ -85,3 +85,34 @@ This document is written for two audiences: my future self, so I remember why de
 - FastAPI's `TestClient` (backed by httpx) lets pytest hit endpoints in-process — no real server, no real network, fast and deterministic.
 - A failing import inside a module shows up as `ImportError: cannot import name '...' from '...'` rather than `Attribute "app" not found`. The two error shapes feel similar but tell you very different things — read the actual stack frame to find the failing line.
 - Squash-merging keeps `main` history linear and readable. The PR's individual commits still exist in the PR conversation history, so nothing is lost — but `main` only sees one clean entry per merged
+
+
+## Day 4 — 2026-05-01
+
+### What I did
+- Created the `ci/github-actions-setup` branch and ran all four quality tools locally first (`ruff`, `black --check`, `mypy`, `pytest`) to make sure the very first CI run would be green.
+- Wrote the first GitHub Actions workflow at `.github/workflows/ci.yml`. It triggers on push to `main` and on every PR targeting `main`, sets up Python 3.12 on Ubuntu with pip caching, installs all backend dependencies via `pip install -e ".[dev]"`, and runs `ruff check`, `black --check`, `mypy app`, and `pytest -v` as four separate visible steps. Uses concurrency cancellation to save CI minutes and least-privilege `contents: read` token permissions.
+- Opened PR #2, watched the first CI run end-to-end, saw it go green on the first try, squash-merged, deleted the feature branch.
+- Updated the branch-protection rule on `main` to require the `Backend (Python 3.12)` status check to pass before any merge. Also enabled "Require branches to be up to date before merging" so PR branches can't merge with a stale view of `main`.
+- Created `docs/readme-ci-badge`, added a badge row to the top of `README.md` covering the live CI status, MIT license, Python 3.12, and Black code-style. Opened PR #3, CI passed, squash-merged, badge now live on the repo home page.
+
+### What I learned
+- The structure of a GitHub Actions workflow file: top-level `name`, `on`, `permissions`, `concurrency`, then a `jobs` map. Each job has a `runs-on` runner, an optional `strategy.matrix`, `defaults` (we set `working-directory: backend` so steps don't have to repeat it), and a `steps` array of `uses:` (community actions) or `run:` (shell commands).
+- Caching pip via `actions/setup-python@v5` with `cache: pip` and `cache-dependency-path: backend/pyproject.toml` cuts the install step from ~90 seconds to ~5 seconds on subsequent runs. The cache key invalidates only when `pyproject.toml` changes — which is exactly when we want it to.
+- Splitting the four quality checks into four separate steps (rather than chaining them with `&&` in a single step) is worth the extra YAML lines: when something fails, the failing step name is visible immediately on the PR.
+- Branch protection becomes meaningful only when status checks are required. Before today, the rule existed but didn't actually block anything CI-wise. After today, broken builds physically cannot land on `main`.
+- The status-check name in branch protection must exactly match the workflow's `jobs.<job>.name` field after matrix substitution. The dropdown only shows checks GitHub has actually seen run at least once, which is why we ran CI before adding the requirement.
+
+### Decisions made
+- One job per CI run for now, with a matrix already wired for future Python versions even though we're only running 3.12 today. Adding 3.13 later is a one-line change.
+- Required branches to be up to date before merge — accepts a small cost (have to refresh PR branches from `main` more often) for a real benefit (no false-pass merges).
+- Did not add coverage upload (e.g., Codecov) yet. Coverage stays opt-in via `pytest --cov` locally for now; CI doesn't enforce a coverage minimum until the codebase is large enough that the threshold is meaningful.
+- Did not enable "Do not allow bypassing" on branch protection, so I (admin) can still push docs commits like NOTES.md updates directly to `main`. Every code change still goes through a PR.
+
+### What's next (Day 5)
+- Begin Phase 2 properly: application configuration layer.
+- Add `pydantic-settings`-based settings management at `backend/app/core/config.py` so environment variables flow through a typed `Settings` object instead of being read with `os.getenv` everywhere.
+- Add a `.env.example` file at `backend/` with all required environment variables documented and dummy values.
+- Add structured logging via `structlog` with a clean default configuration.
+- Wire the settings and logger into `main.py`'s lifespan startup hook.
+- Open PR #4 with the config + logging foundation.
