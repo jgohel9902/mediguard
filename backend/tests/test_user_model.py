@@ -26,9 +26,7 @@ def session() -> Iterator[Session]:
         connect_args={"check_same_thread": False},
     )
     Base.metadata.create_all(engine)
-    test_session_factory = sessionmaker(
-        bind=engine, autoflush=False, autocommit=False
-    )
+    test_session_factory = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     db = test_session_factory()
     try:
         yield db
