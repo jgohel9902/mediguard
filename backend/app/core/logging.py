@@ -20,9 +20,8 @@ import logging
 import sys
 
 import structlog
-from structlog.types import Processor
-
 from app.core.config import get_settings
+from structlog.types import Processor
 
 # Map our typed string log levels to stdlib integer constants.
 _LOG_LEVEL_MAP: dict[str, int] = {
