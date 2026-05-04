@@ -1,8 +1,9 @@
 """Tests for the application configuration module (``app.core.config``)."""
 
 import pytest
-from app.core.config import Settings, get_settings
 from pydantic import ValidationError
+
+from app.core.config import Settings, get_settings
 
 # Every settings-relevant environment variable. Scrubbed before each
 # test so the OS environment can't leak into our assertions.

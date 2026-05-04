@@ -116,3 +116,5 @@ This document is written for two audiences: my future self, so I remember why de
 - Add structured logging via `structlog` with a clean default configuration.
 - Wire the settings and logger into `main.py`'s lifespan startup hook.
 - Open PR #4 with the config + logging foundation.
+
+
