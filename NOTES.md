@@ -118,3 +118,44 @@ This document is written for two audiences: my future self, so I remember why de
 - Open PR #4 with the config + logging foundation.
 
 
+
+## Day 6 — 2026-04-27
+
+### What I did
+- Created the `feat/database-and-user-model` branch and built the data foundation.
+- Added `app/db/base.py` with the SQLAlchemy 2.0 declarative `Base`. Attached a constraint naming convention to the metadata so Alembic generates predictable, portable names for indexes, unique constraints, foreign keys, and primary keys.
+- Added `app/db/session.py` with a settings-driven engine factory, a `SessionLocal` session factory, and a `get_db` FastAPI dependency that yields a session and closes it after each request. Handled SQLite's `check_same_thread` quirk so FastAPI's threading model doesn't trip the database, and enabled `pool_pre_ping` so stale connections are recycled transparently.
+- Added the first ORM model at `app/models/user.py`. UUID primary key (generated client-side via `default=uuid.uuid4`), email with both unique constraint and index, hashed password, optional full name, `is_active` and `is_superuser` flags, and timezone-aware `created_at` / `updated_at` timestamps with server defaults and `onupdate=func.now()`. Used SQLAlchemy 2.0's typed `Mapped[]` syntax so mypy can verify field access.
+- Initialized Alembic at `backend/alembic/`. Customized `env.py` to read `DATABASE_URL` from our `pydantic-settings` layer (so secrets stay out of `alembic.ini`), to import all models so autogenerate can see them, and to use `compare_type=True` and `render_as_batch=True` (the latter for SQLite ALTER TABLE compatibility).
+- Excluded `alembic/` from `ruff` and `mypy` since auto-generated migration files don't need our typing strictness.
+- Generated the first migration via `alembic revision --autogenerate -m "create users table"`. Patched the generated file to use `sa.func.now()` instead of `sa.text("now()")` for SQLite portability, then amended the migration commit so the fix landed cleanly.
+- Ran `alembic upgrade head` against the local SQLite database and verified the schema with a Python one-liner: two tables (`users` + `alembic_version`), eight columns on `users`, all with the right types and nullability.
+- Smoke-tested an end-to-end ORM round-trip — inserting a user via the SQLAlchemy session, committing, and reading the row back with auto-generated UUID and timestamps populated.
+- Added `tests/test_user_model.py` with five focused tests: creation with required fields, default values for flags and `full_name`, auto-populated timestamps, the email-uniqueness constraint raising `IntegrityError` on duplicate inserts, and `__repr__` not leaking the password hash. Used a function-scoped pytest fixture that gives each test its own in-memory SQLite engine.
+- Pushed PR #5 (after a force-push to update the amended migration commit), watched CI go green, squash-merged, and synced local `main`.
+
+### What I learned
+- SQLAlchemy 2.0's typed `Mapped[]` syntax is genuinely useful — `user.full_name.upper()` raises a mypy warning because `full_name` is `Mapped[str | None]`. Catches a class of NoneType crashes at type-check time.
+- A constraint naming convention attached to `Base.metadata` matters more than it looks. Without it, Alembic generates auto-named constraints like `users_email_key` (PostgreSQL style) which differ from `sqlite_autoindex_users_1` on SQLite. With it, names are predictable across backends.
+- The `now()` portability gotcha. Alembic's autogenerate captures `func.now()` as the literal string `sa.text("now()")`, which is PostgreSQL syntax. SQLite has no bare `now()` function — patching to `sa.func.now()` makes the call dialect-aware so SQLAlchemy renders the right SQL per backend at apply time.
+- `render_as_batch=True` in `env.py` is what makes Alembic's ALTER TABLE work on SQLite (which has very limited native ALTER support). Without it, even simple column additions fail later in development.
+- `--force-with-lease` is the safe way to push after rewriting feature-branch history (e.g., after `git commit --amend`). Plain `--force` will clobber any commits the remote has that you don't know about; `--force-with-lease` refuses if such commits exist.
+- An in-memory SQLite engine per test (`sqlite:///:memory:` plus per-test `Base.metadata.create_all`) gives perfect test isolation cheaply, without depending on Alembic version state.
+
+### Decisions made
+- UUID primary keys generated **client-side** with `uuid.uuid4`. Avoids the database-autoincrement coupling, makes IDs predictable for testing, and lets services know an ID before the row hits the DB.
+- Both `unique=True` and `index=True` on `email`. Slightly redundant (unique already implies an index), but explicit. Keeps lookup performance and constraint behavior clearly separated in the schema.
+- Soft-delete via `is_active=False`, never `DELETE FROM users`. Preserves audit trail and prevents foreign-key-cascade surprises later.
+- `__repr__` omits the password hash, even though it's hashed. Defense in depth — logs and crash dumps containing user objects must never leak credentials.
+- Alembic env.py imports models via `import app.models  # noqa: F401`. Single line, single source of truth, all future models picked up automatically as long as they're imported into `app.models`.
+- `render_as_batch=True` is on by default in our env.py — enables SQLite migrations now and is harmless for PostgreSQL, so no per-environment branching needed.
+
+### What's next (Day 7)
+- Authentication layer.
+- Add `app/core/security.py` for bcrypt password hashing and JWT token issuance/verification.
+- Add `app/schemas/user.py` Pydantic schemas for user creation and reading (including a strict separation between request-input and response-output models so the password hash is never returned).
+- Add `app/api/auth.py` with signup and login endpoints.
+- Wire into `main.py` via a router.
+- Tests covering hashing roundtrip, JWT issue/verify, and the auth endpoints end-to-end.
+- Open PR #6.
+
